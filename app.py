@@ -118,10 +118,15 @@ def client_register():
     #     return jsonify("Missing required argument 'Password'"), 422
     # TODO: Error checking the actual values for the arguments
     run_query("INSERT INTO client (email, username, password, first_name, last_name, picture_url) VALUES (?,?,?,?,?,?)", [email, username, password, first_name, last_name, picture_url])
-    # client_id = run_query("SELECT id FROM client WHERE username=? AND password=?", [username,password])
-    # login_token = {"token" : "tH1suN1qu3unmb3r"}
-    # run_query("INSERT INTO client_session SET (token=?,client_id=?)",[login_token,client_id])
-    return jsonify("You are now registered"),200
+    client_data = run_query("SELECT * FROM client WHERE username=? AND password=?", [username,password])
+    if client_data:
+        clientId = client_data[0][0]
+        loginToken = "tH1suN1qu3unmb3r"
+        run_query("INSERT INTO client_session (token,client_id) VALUES (?,?)", [loginToken,clientId])
+        return jsonify(clientId),201
+    else:
+        return jsonify("Error occurred"),
+
     
 @app.put('/api/posts')
 def edit_post():

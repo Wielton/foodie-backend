@@ -6,58 +6,10 @@ import string
 
 app = Flask(__name__)
 
-# This is the features section with an api to users, 
-# where seperate tables are utilized: users, user_posts.
+# Restaurant and relating menu GET requests
 
-# @app.get('/login')
-# def login():
-#     data = request.json
-#     username = data.get('username')
-#     password = data.get('password')
-#     user = run_query("SELECT id,username FROM users WHERE username=? AND password=?", [username,password])
-#     if user:
-#         session['loggedIn']=True
-#         session['username']=user[0][1]
-#         session['userId']=user[0][0]
-#         return jsonify(session),201
-#     else:
-#         return jsonify("Missing required argument 'Username'"), 422
-
-# @app.post('/login')
-# def signup():
-#     data = request.json
-#     username = data.get('username')
-#     password = data.get('password')
-#     run_query("INSERT INTO users (username,password) VALUES (?,?)",[username,password])
-#     session['loggedIn']=True
-#     return jsonify(session),201
-    
-# @app.route('/logout')
-# def logout():
-#     session.pop('loggedIn', None)
-#     session.pop('username', None)
-#     return redirect(url_for('login'))
-
-# @app.route('/user')
-# def create_post():
-#     user = session
-
-# @app.post('/api/posts')
-# def create_post():
-#     data = request.json
-#     post = data.get('post')
-#     user_id = session['userId']
-#     if not user_id:
-#         return jsonify("You must be logged in to make a post.")
-#     else:
-#         run_query("INSERT INTO posts (post,post_user_id) VALUES (?)", [post,user_id])
-#         return jsonify("Post created successfully!")
-
-
-# Basic requirements satisfied.  
 @app.get('/api/restaurants')
 def get_restaurants():
-    # TODO: db SELECT
     restaurant_list = run_query("SELECT * FROM restaurant")
     resp = []
     for restaurant in restaurant_list:
@@ -85,18 +37,12 @@ def get_menu():
         resp.append(an_obj)
     return jsonify(resp), 200
 
-# @app.get('/api/client')
-# def client_login():
-#     
-#     if not username:
-#         return jsonify("Missing required field"), 422
-#     if not password:
-#         return jsonify("Missing required field"), 422
-#     client_id = run_query("SELECT id FROM client WHERE username=? AND password=?", [username,password])
-#     login_token = {"token" : "tH1suN1qu3unmb3r"}
-#     run_query("INSERT INTO client_session SET (token=?,client_id=?)",[login_token,client_id])
-#     return jsonify(login_token),200
-    
+# TODO Restaurant register and login
+
+
+# Client register, login, logout
+# TODO client info UPDATE and account delete
+
 @app.post('/api/client/signup')
 def client_register():
     data = request.json
@@ -138,17 +84,17 @@ def client_login():
         return jsonify("Credentials don't match.  Please try again")
     loginToken = ''.join([random.choice(string.ascii_letters
         + string.digits) for n in range(32)])
-    # client = {}
-    # client['id'] = client_id
-    # client['username'] = client_username
-    # client['token'] = loginToken
+    client = {}
+    client['id'] = client_id
+    client['username'] = client_username
+    client['token'] = loginToken
     logged_in = run_query("SELECT * FROM client_session WHERE client_id=?",[client_id])
     if not logged_in:
         run_query("INSERT INTO client_session (token,client_id) VALUES (?,?)", [loginToken,client_id])
     elif client_id == logged_in[0][3]:
         run_query("DELETE FROM client_session WHERE client_id=?",[client_id])
         run_query("INSERT INTO client_session (token,client_id) VALUES (?,?)", [loginToken,client_id])
-    return jsonify(client_id),201
+    return jsonify(client),201
     
 
     

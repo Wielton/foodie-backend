@@ -129,12 +129,12 @@ def client_login():
     password = data.get('password')
     client_data = run_query("SELECT * FROM client WHERE username=? AND password=?", [username,password])
     print(client_data[0][3])
-    clientId = client_data[0][0]
-    clientUsername = client_data[0][2]
-    clientPassword = client_data[0][3]
-    if clientUsername != username:
+    client_id = client_data[0][0]
+    client_username = client_data[0][2]
+    client_password = client_data[0][3]
+    if client_username != username:
         return jsonify("Credentials don't match.  Please try again")
-    if clientPassword != password:
+    if client_password != password:
         return jsonify("Credentials don't match.  Please try again")
     loginToken = ''.join([random.choice(string.ascii_letters
         + string.digits) for n in range(32)])
@@ -142,26 +142,29 @@ def client_login():
     client['id'] = client_data[0][0]
     client['username'] = client_data[0][2]
     client['token'] = loginToken
-    run_query("INSERT INTO client_session (token,client_id) VALUES (?,?)", [loginToken,clientId])
+    logged_in = run_query("SELECT * FROM client_session WHERE client_id=?",[client_id])
+    if logged_in:
+        client_logout()
+    run_query("INSERT INTO client_session (token,client_id) VALUES (?,?)", [loginToken,client_id])
     return jsonify(client),201
     
 
     
-@app.put('/api/posts')
-def edit_post():
-    params = request.args
-    post_id = params.get('id')
-    data = request.json
-    post_content = data.get('post')
-    run_query("UPDATE user_posts SET post = ? WHERE id=?", [post_content, post_id])
-    return jsonify("Your post was successfully edited"), 200
+# @app.put('/api/posts')
+# def edit_post():
+#     params = request.args
+#     post_id = params.get('id')
+#     data = request.json
+#     post_content = data.get('post')
+#     run_query("UPDATE user_posts SET post = ? WHERE id=?", [post_content, post_id])
+#     return jsonify("Your post was successfully edited"), 200
 
-@app.delete('/api/posts')
-def delete_post():
+@app.delete('/api/client/logout')
+def client_logout():
     params = request.args
-    user_id = params.get('id')
-    run_query("DELETE FROM user_posts WHERE id=?",[user_id])
-    return jsonify("Post deleted"),200
+    client_id = params.get('client_id')
+    run_query("DELETE FROM client_session WHERE client_id=?",[client_id])
+    return jsonify("Client logged out"),200
 
 
 

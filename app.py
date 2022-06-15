@@ -1,6 +1,8 @@
 from flask import Flask, request, jsonify, session, redirect, url_for
 from helpers.db_helpers import *
 import sys
+import random
+import string
 
 app = Flask(__name__)
 
@@ -85,9 +87,7 @@ def get_menu():
 
 # @app.get('/api/client')
 # def client_login():
-#     data = request.json
-#     username = data.get('username')
-#     password = data.get('password')
+#     
 #     if not username:
 #         return jsonify("Missing required field"), 422
 #     if not password:
@@ -97,7 +97,7 @@ def get_menu():
 #     run_query("INSERT INTO client_session SET (token=?,client_id=?)",[login_token,client_id])
 #     return jsonify(login_token),200
     
-@app.post('/api/client')
+@app.post('/api/client/signup')
 def client_register():
     data = request.json
     email = data.get('email')
@@ -106,26 +106,45 @@ def client_register():
     last_name = data.get('lastName')
     password = data.get('password')
     picture_url = data.get('pictureUrl')
-    # if not email:
-    #     return jsonify("Missing required argument 'Email'"), 422
-    # if not username:
-    #     return jsonify("Missing required argument 'Username'"), 422
-    # if not first_name:
-    #     return jsonify("Missing required argument 'First Name'"), 422
-    # if not last_name:
-    #     return jsonify("Missing required argument 'Last Name'"), 422
-    # if not password:
-    #     return jsonify("Missing required argument 'Password'"), 422
-    # TODO: Error checking the actual values for the arguments
     run_query("INSERT INTO client (email, username, password, first_name, last_name, picture_url) VALUES (?,?,?,?,?,?)", [email, username, password, first_name, last_name, picture_url])
     client_data = run_query("SELECT * FROM client WHERE username=? AND password=?", [username,password])
+    print(client_data)
     if client_data:
+        loginToken = ''.join([random.choice(string.ascii_letters
+            + string.digits) for n in range(32)])
+        client = {}
+        client['id'] = client_data[0][0]
+        client['username'] = client_data[0][1]
+        client['token'] = loginToken
         clientId = client_data[0][0]
-        loginToken = "tH1suN1qu3unmb3r"
         run_query("INSERT INTO client_session (token,client_id) VALUES (?,?)", [loginToken,clientId])
-        return jsonify(clientId),201
+        return jsonify(client),201
     else:
         return jsonify("Error occurred"),
+
+@app.post('/api/client/login')
+def client_login():
+    data = request.json
+    username = data.get('username')
+    password = data.get('password')
+    client_data = run_query("SELECT * FROM client WHERE username=? AND password=?", [username,password])
+    print(client_data[0][3])
+    clientId = client_data[0][0]
+    clientUsername = client_data[0][2]
+    clientPassword = client_data[0][3]
+    if clientUsername != username:
+        return jsonify("Credentials don't match.  Please try again")
+    if clientPassword != password:
+        return jsonify("Credentials don't match.  Please try again")
+    loginToken = ''.join([random.choice(string.ascii_letters
+        + string.digits) for n in range(32)])
+    client = {}
+    client['id'] = client_data[0][0]
+    client['username'] = client_data[0][2]
+    client['token'] = loginToken
+    run_query("INSERT INTO client_session (token,client_id) VALUES (?,?)", [loginToken,clientId])
+    return jsonify(client),201
+    
 
     
 @app.put('/api/posts')

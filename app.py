@@ -74,6 +74,8 @@ def client_login():
     username_input = data.get('username')
     password_input = data.get('password')
     client_data = run_query("SELECT * FROM client WHERE username=? AND password=?", [username_input, password_input])
+    if not client_data:
+        return jsonify("Couldn't find a record to match the credentials")
     print(client_data[0][3])
     client_id = client_data[0][0]
     client_username = client_data[0][2]

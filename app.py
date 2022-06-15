@@ -116,8 +116,8 @@ def client_register():
         client['id'] = client_data[0][0]
         client['username'] = client_data[0][1]
         client['token'] = loginToken
-        clientId = client_data[0][0]
-        run_query("INSERT INTO client_session (token,client_id) VALUES (?,?)", [loginToken,clientId])
+        client_id = client_data[0][0]
+        run_query("INSERT INTO client_session (token,client_id) VALUES (?,?)", [loginToken, client_id])
         return jsonify(client),201
     else:
         return jsonify("Error occurred"),
@@ -125,28 +125,30 @@ def client_register():
 @app.post('/api/client/login')
 def client_login():
     data = request.json
-    username = data.get('username')
-    password = data.get('password')
-    client_data = run_query("SELECT * FROM client WHERE username=? AND password=?", [username,password])
+    username_input = data.get('username')
+    password_input = data.get('password')
+    client_data = run_query("SELECT * FROM client WHERE username=? AND password=?", [username_input, password_input])
     print(client_data[0][3])
     client_id = client_data[0][0]
     client_username = client_data[0][2]
     client_password = client_data[0][3]
-    if client_username != username:
+    if client_username != username_input:
         return jsonify("Credentials don't match.  Please try again")
-    if client_password != password:
+    if client_password != password_input:
         return jsonify("Credentials don't match.  Please try again")
     loginToken = ''.join([random.choice(string.ascii_letters
         + string.digits) for n in range(32)])
-    client = {}
-    client['id'] = client_data[0][0]
-    client['username'] = client_data[0][2]
-    client['token'] = loginToken
+    # client = {}
+    # client['id'] = client_id
+    # client['username'] = client_username
+    # client['token'] = loginToken
     logged_in = run_query("SELECT * FROM client_session WHERE client_id=?",[client_id])
-    if logged_in:
-        client_logout()
-    run_query("INSERT INTO client_session (token,client_id) VALUES (?,?)", [loginToken,client_id])
-    return jsonify(client),201
+    if not logged_in:
+        run_query("INSERT INTO client_session (token,client_id) VALUES (?,?)", [loginToken,client_id])
+    elif client_id == logged_in[0][3]:
+        run_query("DELETE FROM client_session WHERE client_id=?",[client_id])
+        run_query("INSERT INTO client_session (token,client_id) VALUES (?,?)", [loginToken,client_id])
+    return jsonify(client_id),201
     
 
     
@@ -162,7 +164,7 @@ def client_login():
 @app.delete('/api/client/logout')
 def client_logout():
     params = request.args
-    client_id = params.get('client_id')
+    client_id = params.get('id')
     run_query("DELETE FROM client_session WHERE client_id=?",[client_id])
     return jsonify("Client logged out"),200
 

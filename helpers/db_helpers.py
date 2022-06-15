@@ -38,11 +38,9 @@ def run_query(statement, args=None):
         #     # print(result[0][1])
         else:
             cursor.execute(statement, args)
-            if cursor.rowcount == 1:
-                conn.commit()
-                print("Query successful")
-            else:
-                print("Query failed")
+            conn.commit()
+            print("Query successful")
+            
     
     except mariadb.OperationalError as e: # This will allow to print the exception as it happens
         print(e.msg)

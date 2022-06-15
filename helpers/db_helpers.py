@@ -45,7 +45,7 @@ def run_query(statement, args=None):
                 print("Query failed")
     
     except mariadb.OperationalError as e: # This will allow to print the exception as it happens
-        print("Got an operational error")
+        print(e.msg)
         if ("Access Denied" in e.msg):
             print("Failed to log in")
     

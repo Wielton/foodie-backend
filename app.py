@@ -83,19 +83,19 @@ def get_menu():
         resp.append(an_obj)
     return jsonify(resp), 200
 
-@app.get('/api/client')
-def client_login():
-    data = request.json
-    username = data.get('username')
-    password = data.get('password')
-    if not username:
-        return jsonify("Missing required field"), 422
-    if not password:
-        return jsonify("Missing required field"), 422
-    client_id = run_query("SELECT id FROM client WHERE username=? AND password=?", [username,password])
-    login_token = {"token" : "tH1suN1qu3unmb3r"}
-    run_query("INSERT INTO client_session SET (token=?,client_id=?)",[login_token,client_id])
-    return jsonify(login_token),200
+# @app.get('/api/client')
+# def client_login():
+#     data = request.json
+#     username = data.get('username')
+#     password = data.get('password')
+#     if not username:
+#         return jsonify("Missing required field"), 422
+#     if not password:
+#         return jsonify("Missing required field"), 422
+#     client_id = run_query("SELECT id FROM client WHERE username=? AND password=?", [username,password])
+#     login_token = {"token" : "tH1suN1qu3unmb3r"}
+#     run_query("INSERT INTO client_session SET (token=?,client_id=?)",[login_token,client_id])
+#     return jsonify(login_token),200
     
 @app.post('/api/client')
 def client_register():
@@ -106,18 +106,18 @@ def client_register():
     last_name = data.get('lastName')
     password = data.get('password')
     picture_url = data.get('pictureUrl')
-    if not email:
-        return jsonify("Missing required argument 'Email'"), 422
-    if not username:
-        return jsonify("Missing required argument 'Username'"), 422
-    if not first_name:
-        return jsonify("Missing required argument 'First Name'"), 422
-    if not last_name:
-        return jsonify("Missing required argument 'Last Name'"), 422
-    if not password:
-        return jsonify("Missing required argument 'Password'"), 422
+    # if not email:
+    #     return jsonify("Missing required argument 'Email'"), 422
+    # if not username:
+    #     return jsonify("Missing required argument 'Username'"), 422
+    # if not first_name:
+    #     return jsonify("Missing required argument 'First Name'"), 422
+    # if not last_name:
+    #     return jsonify("Missing required argument 'Last Name'"), 422
+    # if not password:
+    #     return jsonify("Missing required argument 'Password'"), 422
     # TODO: Error checking the actual values for the arguments
-    run_query("INSERT INTO client (email, username, first_name, last_name, password, picture_url) VALUES (?,?,?,?,?,?)", [email,username,first_name,last_name,password,picture_url])
+    run_query("INSERT INTO client (email, username, password, first_name, last_name, picture_url) VALUES (?,?,?,?,?,?)", [email, username, password, first_name, last_name, picture_url])
     # client_id = run_query("SELECT id FROM client WHERE username=? AND password=?", [username,password])
     # login_token = {"token" : "tH1suN1qu3unmb3r"}
     # run_query("INSERT INTO client_session SET (token=?,client_id=?)",[login_token,client_id])

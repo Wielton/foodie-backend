@@ -100,14 +100,24 @@ def client_login():
     
 
     
-# @app.put('/api/posts')
-# def edit_post():
+# @app.patch('/api/client/profile')
+# def edit_profile():
 #     params = request.args
-#     post_id = params.get('id')
+#     email = params.get('email')
+#     username = params.get('username')
+#     password = params.get('password')
+#     first_name = params.get('firstName')
+#     last_name = params.get('lastName')
+#     picture_url = params.get('pictureUrl')
 #     data = request.json
-#     post_content = data.get('post')
-#     run_query("UPDATE user_posts SET post = ? WHERE id=?", [post_content, post_id])
-#     return jsonify("Your post was successfully edited"), 200
+#     email = data.get('email')
+#     username = data.get('username')
+#     password = data.get('password')
+#     first_name = data.get('firstName')
+#     last_name = data.get('lastName')
+#     picture_url = data.get('pictureUrl')
+#     run_query("UPDATE client SET (email, username, password, first_name, last_name, picture_url) WHERE id=?", [])
+#     return jsonify("Your info was successfully edited"), 200
 
 @app.delete('/api/client/logout')
 def client_logout():

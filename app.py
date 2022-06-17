@@ -3,10 +3,20 @@ from helpers.db_helpers import *
 import sys
 import random
 import string
+import bcrypt
 
 app = Flask(__name__)
 
-# Restaurant and relating menu GET requests
+
+def encrypt_password(password):
+    salt = bcrypt.gensalt(rounds=5)
+    hash_result = bcrypt.hashpw(password.encode(), salt)
+    print(hash_result)
+    decrypted_password = hash_result.decode()
+    return decrypted_password
+
+
+
 
 @app.get('/api/restaurants')
 def get_restaurants():
@@ -38,7 +48,22 @@ def get_menu():
     return jsonify(resp), 200
 
 # TODO Restaurant register and login
-
+@app.post('/restaurant/signup')
+def restaurant_register():
+    data = request.json
+    password = data.get('password')
+    name = data.get('name')
+    address = data.get('address')
+    phone_num = data.get('phoneNumber')
+    bio = data.get('bio')
+    profile_url = data.get('profileUrl')
+    banner_url = data.get('bannerUrl')
+    city = data.get('city')
+    city_list = run_query("SELECT * FROM city WHERE city=?", [city])
+    if not city_list:
+        return jsonify("Please select a valid city.")
+    else:
+        run_query("INSERT INTO restaurant (password, name, address, phone_num, bio, profile_url, banner_Url, city) VALUES (?,?,?,?,?,?,?,?)", [password, name, address, phone_num, bio, profile_url, banner_url, city])
 
 # Client register, login, logout
 # TODO client info UPDATE and account delete
@@ -50,52 +75,46 @@ def client_register():
     username = data.get('username')
     first_name = data.get('firstName')
     last_name = data.get('lastName')
-    password = data.get('password')
+    password_input = data.get('password')
+    password = encrypt_password(password_input)
     picture_url = data.get('pictureUrl')
     run_query("INSERT INTO client (email, username, password, first_name, last_name, picture_url) VALUES (?,?,?,?,?,?)", [email, username, password, first_name, last_name, picture_url])
-    client_data = run_query("SELECT * FROM client WHERE username=? AND password=?", [username,password])
-    print(client_data)
-    if client_data:
-        loginToken = ''.join([random.choice(string.ascii_letters
-            + string.digits) for n in range(32)])
-        client = {}
-        client['id'] = client_data[0][0]
-        client['username'] = client_data[0][1]
-        client['token'] = loginToken
-        client_id = client_data[0][0]
-        run_query("INSERT INTO client_session (token,client_id) VALUES (?,?)", [loginToken, client_id])
-        return jsonify(client),201
-    else:
-        return jsonify("Error occurred"),
+    client_data = run_query("SELECT * FROM client WHERE username=?", [username])
+    login_token = ''.join([random.choice(string.ascii_letters + string.digits) for n in range(32)])
+    client = {}
+    client['id'] = client_data[0][0]
+    client['username'] = client_data[0][2]
+    client['token'] = login_token
+    client_id = client_data[0][0]
+    run_query("INSERT INTO client_session (token,client_id) VALUES (?,?)", [login_token, client_id])
+    return jsonify(client),201
+    
 
 @app.post('/api/client/login')
 def client_login():
     data = request.json
     username_input = data.get('username')
     password_input = data.get('password')
-    client_data = run_query("SELECT * FROM client WHERE username=? AND password=?", [username_input, password_input])
-    if not client_data:
-        return jsonify("Couldn't find a record to match the credentials")
-    print(client_data[0][3])
-    client_id = client_data[0][0]
-    client_username = client_data[0][2]
-    client_password = client_data[0][3]
-    if client_username != username_input:
-        return jsonify("Credentials don't match.  Please try again")
-    if client_password != password_input:
-        return jsonify("Credentials don't match.  Please try again")
-    loginToken = ''.join([random.choice(string.ascii_letters
-        + string.digits) for n in range(32)])
+    client_info = run_query("SELECT * FROM client WHERE username=?", [username_input])
+    client_password = client_info[0][3]
+    if bcrypt.checkpw(password_input.encode(), client_password.encode()):
+        print("You are now logged in")
+    else:
+        print("Credentials don't match")
+    client_id = client_info[0][0]
+    client_username = client_info[0][2]
+    client_password = client_info[0][3]
+    login_token = ''.join([random.choice(string.ascii_letters + string.digits) for n in range(32)])
     client = {}
     client['id'] = client_id
     client['username'] = client_username
-    client['token'] = loginToken
+    client['token'] = login_token
     logged_in = run_query("SELECT * FROM client_session WHERE client_id=?",[client_id])
     if not logged_in:
-        run_query("INSERT INTO client_session (token,client_id) VALUES (?,?)", [loginToken,client_id])
+        run_query("INSERT INTO client_session (token,client_id) VALUES (?,?)", [login_token,client_id])
     elif client_id == logged_in[0][3]:
         run_query("DELETE FROM client_session WHERE client_id=?",[client_id])
-        run_query("INSERT INTO client_session (token,client_id) VALUES (?,?)", [loginToken,client_id])
+        run_query("INSERT INTO client_session (token,client_id) VALUES (?,?)", [login_token,client_id])
     return jsonify(client),201
     
 

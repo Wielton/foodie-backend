@@ -16,9 +16,9 @@ def encrypt_password(password):
     return decrypted_password
 
 
+# Restaurant get, signup and edit
 
-
-@app.get('/api/restaurants')
+@app.get('/api/restaurant')
 def get_restaurants():
     restaurant_list = run_query("SELECT * FROM restaurant")
     resp = []
@@ -32,6 +32,39 @@ def get_restaurants():
         an_obj['banner_img'] = restaurant[6]
         resp.append(an_obj)
     return jsonify(resp), 200
+
+@app.post('/api/restaurant')
+def restaurant_register():
+    data = request.json
+    email = data.get('email')
+    password_input = data.get('password')
+    password = encrypt_password(password_input)
+    name = data.get('name')
+    address = data.get('address')
+    phone_num = data.get('phoneNumber')
+    bio = data.get('bio')
+    profile_url = data.get('profileUrl')
+    banner_url = data.get('bannerUrl')
+    city_input = data.get('city')
+    city_list = run_query("SELECT * FROM city WHERE name=?", [city_input])
+    city_id = city_list[0][0]
+    city_name = city_list[0][1]
+    print(city_id, city_name)
+    if city_name != city_input:
+        return jsonify("Please select a valid city.")
+    else:
+        run_query("INSERT INTO restaurant (email, password, name, address, phone_num, bio, profile_url, banner_Url, city) VALUES (?,?,?,?,?,?,?,?,?)", [email, password, name, address, phone_num, bio, profile_url, banner_url, city_id])
+        print("Restaurant registered")
+    restaurant_data = run_query("SELECT * FROM restaurant WHERE email=?", [email])
+    print(restaurant_data[0])
+    login_token = ''.join([random.choice(string.ascii_letters + string.digits) for n in range(32)])
+    restaurant = {}
+    restaurant['id'] = restaurant_data[0][0]
+    restaurant['name'] = restaurant_data[0][3]
+    restaurant['token'] = login_token
+    restaurant_id = restaurant_data[0][0]
+    run_query("INSERT INTO restaurant_session (token, restaurant_id) VALUES (?,?)", [login_token, restaurant_id])
+    return jsonify(restaurant),201
 
 @app.get('/api/restaurants/menu')
 def get_menu():
@@ -48,27 +81,12 @@ def get_menu():
     return jsonify(resp), 200
 
 # TODO Restaurant register and login
-@app.post('/restaurant/signup')
-def restaurant_register():
-    data = request.json
-    password = data.get('password')
-    name = data.get('name')
-    address = data.get('address')
-    phone_num = data.get('phoneNumber')
-    bio = data.get('bio')
-    profile_url = data.get('profileUrl')
-    banner_url = data.get('bannerUrl')
-    city = data.get('city')
-    city_list = run_query("SELECT * FROM city WHERE city=?", [city])
-    if not city_list:
-        return jsonify("Please select a valid city.")
-    else:
-        run_query("INSERT INTO restaurant (password, name, address, phone_num, bio, profile_url, banner_Url, city) VALUES (?,?,?,?,?,?,?,?)", [password, name, address, phone_num, bio, profile_url, banner_url, city])
+
 
 # Client register, login, logout
 # TODO client info UPDATE and account delete
 
-@app.post('/api/client/signup')
+@app.post('/api/client')
 def client_register():
     data = request.json
     email = data.get('email')
@@ -90,7 +108,32 @@ def client_register():
     return jsonify(client),201
     
 
-@app.post('/api/client/login')
+
+    
+
+    
+# @app.patch('/api/client')
+# def edit_profile():
+#     params = request.args
+#     email = params.get('email')
+#     username = params.get('username')
+#     password = params.get('password')
+#     first_name = params.get('firstName')
+#     last_name = params.get('lastName')
+#     picture_url = params.get('pictureUrl')
+#     data = request.json
+#     email = data.get('email')
+#     username = data.get('username')
+#     password = data.get('password')
+#     first_name = data.get('firstName')
+#     last_name = data.get('lastName')
+#     picture_url = data.get('pictureUrl')
+#     run_query("UPDATE client SET (email, username, password, first_name, last_name, picture_url) WHERE id=?", [])
+#     return jsonify("Your info was successfully edited"), 200
+
+# Client login/logout endpoint
+
+@app.post('/api/client-login')
 def client_login():
     data = request.json
     username_input = data.get('username')
@@ -116,36 +159,20 @@ def client_login():
         run_query("DELETE FROM client_session WHERE client_id=?",[client_id])
         run_query("INSERT INTO client_session (token,client_id) VALUES (?,?)", [login_token,client_id])
     return jsonify(client),201
-    
 
-    
-# @app.patch('/api/client/profile')
-# def edit_profile():
-#     params = request.args
-#     email = params.get('email')
-#     username = params.get('username')
-#     password = params.get('password')
-#     first_name = params.get('firstName')
-#     last_name = params.get('lastName')
-#     picture_url = params.get('pictureUrl')
-#     data = request.json
-#     email = data.get('email')
-#     username = data.get('username')
-#     password = data.get('password')
-#     first_name = data.get('firstName')
-#     last_name = data.get('lastName')
-#     picture_url = data.get('pictureUrl')
-#     run_query("UPDATE client SET (email, username, password, first_name, last_name, picture_url) WHERE id=?", [])
-#     return jsonify("Your info was successfully edited"), 200
-
-@app.delete('/api/client/logout')
+@app.delete('/api/client-login')
 def client_logout():
     params = request.args
-    client_id = params.get('id')
-    run_query("DELETE FROM client_session WHERE client_id=?",[client_id])
-    return jsonify("Client logged out"),200
+    session_token = params.get('token')
+    session = run_query("SELECT * FROM client_session WHERE token=?",[session_token])
+    if session[0][1]:
+        run_query("DELETE FROM client_session WHERE token=?",[session_token])
+        return jsonify("Client logged out"),200
+    else:
+        return jsonify("Error, token not found."),500
 
 
+# Application launch parameters
 
 if (len(sys.argv) > 1):
     mode = sys.argv[1]

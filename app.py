@@ -20,16 +20,19 @@ def encrypt_password(password):
 
 @app.get('/api/restaurant')
 def get_restaurants():
-    restaurant_list = run_query("SELECT * FROM restaurant")
+    restaurant_list = run_query("SELECT * FROM restaurant LEFT JOIN city ON city.id=restaurant.city")
     resp = []
+    print(restaurant_list)
     for restaurant in restaurant_list:
         an_obj = {}
-        an_obj['name'] = restaurant[1]
-        an_obj['address'] = restaurant[2]
-        an_obj['phone_num'] = restaurant[3]
-        an_obj['bio'] = restaurant[4]
-        an_obj['profile_img'] = restaurant[5]
-        an_obj['banner_img'] = restaurant[6]
+        an_obj['id'] = restaurant[0]
+        an_obj['name'] = restaurant[3]
+        an_obj['address'] = restaurant[4]
+        an_obj['phoneNum'] = restaurant[5]
+        an_obj['bio'] = restaurant[6]
+        an_obj['profileUrl'] = restaurant[7]
+        an_obj['bannerUrl'] = restaurant[8]
+        an_obj['city'] = restaurant[11]
         resp.append(an_obj)
     return jsonify(resp), 200
 
@@ -64,23 +67,55 @@ def restaurant_register():
     restaurant['token'] = login_token
     restaurant_id = restaurant_data[0][0]
     run_query("INSERT INTO restaurant_session (token, restaurant_id) VALUES (?,?)", [login_token, restaurant_id])
+    print(jsonify(restaurant))
     return jsonify(restaurant),201
 
-@app.get('/api/restaurants/menu')
-def get_menu():
-    # TODO: db SELECT
-    menu_items = run_query("SELECT * FROM menu_item WHERE restaurant_id=restaurant.id")
+# Create menu items
+@app.post('/api/menu')
+def create_menu_item():
+    params = request.args
+    data = request.json
+    
+    login_token = params.get('token')
+    restaurant_id = params.get('id')
+    current_token = run_query("SELECT * FROM restaurant_session WHERE token=?",[login_token])
+    
+    name = data.get('name')
+    description = data.get('description')
+    price = data.get('price')
+    image_url = data.get('image_url')
+    if login_token is None:
+        print("You must be logged in to create a menu item")
+    else:
+        run_query("INSERT INTO menu_item (name, description, price, image_url, restaurant_id) VALUES (?,?,?,?,?)",[name, description, price, image_url, restaurant_id])
+        print("The item was added successfully")
+    return jsonify("Complete")
+
+@app.get('/api/menu')
+def get_menu_item():
+    params = request.args
+    restaurant_id = params.get('restaurant_id')
+    menu_id = params.get('id')
+    if restaurant_id and not menu_id:
+        menu_items = run_query("SELECT * FROM menu_item WHERE restaurant_id=?",[restaurant_id])
+    else:
+        menu_items = run_query("SELECT * FROM menu_item WHERE restaurant_id=? AND id=?",[restaurant_id,menu_id])
     resp = []
     for item in menu_items:
         an_obj = {}
+        an_obj['id'] = item[0]
         an_obj['name'] = item[1]
         an_obj['description'] = item[2]
-        an_obj['price'] = item[3]
+        an_obj['price'] = float(item[3])
         an_obj['image'] = item[4]
         resp.append(an_obj)
     return jsonify(resp), 200
 
+
 # TODO Restaurant register and login
+
+
+
 
 
 # Client register, login, logout

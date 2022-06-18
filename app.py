@@ -22,7 +22,6 @@ def encrypt_password(password):
 def get_restaurants():
     restaurant_list = run_query("SELECT * FROM restaurant LEFT JOIN city ON city.id=restaurant.city")
     resp = []
-    print(restaurant_list)
     for restaurant in restaurant_list:
         an_obj = {}
         an_obj['id'] = restaurant[0]

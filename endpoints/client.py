@@ -12,24 +12,27 @@ def encrypt_password(password):
     return decrypted_password
 
     
-# Client register, login, logout
+
 # TODO client info UPDATE and account delete
 # Response Codes: 
 #   1. 200 = Success client creation
 #   2. 204 = success with No Content, which would be if nothing was edited in the user profile
-# 
+
 # Error Codes: 
 #   1. 401 = Access Denied becuase of lack of valid session token
 #   2. 422 = Unprocessable because of lacking required info from client 
 #   3. 500 = Internal Server Error
 
+# Get client info
 
 @app.get('/api/client')
 def get_client_info():
     params = request.args
+    # Check for valid session token
     current_token = params.get('token')
-    if not current_token:
+    if not current_token:   # If no session found then return error
         return jsonify("Session token not found!"), 401
+    # If valid token then retrieve client info 
     client_info = run_query("SELECT * FROM client LEFT JOIN client_session ON client_session.client_id=client.id WHERE client_session.token=?",[current_token])
     print(client_info)
     resp = []

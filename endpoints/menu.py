@@ -27,7 +27,7 @@ def create_menu_item():
 @app.get('/api/menu')
 def get_menu_item():
     params = request.args
-    restaurant_id = params.get('restaurant_id')
+    restaurant_id = params.get('restaurantId')
     menu_id = params.get('id')
     if restaurant_id and not menu_id:
         menu_items = run_query("SELECT * FROM menu_item WHERE restaurant_id=?",[restaurant_id])

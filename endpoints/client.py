@@ -4,14 +4,15 @@ from helpers.db_helpers import *
 import bcrypt
 import uuid
 
+
+# Bcrypt password encryption handling
+
 def encrypt_password(password):
     salt = bcrypt.gensalt(rounds=5)
     hash_result = bcrypt.hashpw(password.encode(), salt)
     print(hash_result)
     decrypted_password = hash_result.decode()
     return decrypted_password
-
-    
 
 # TODO client info UPDATE and account delete
 # Response Codes: 
@@ -35,6 +36,7 @@ def get_client_info():
     # If valid token then retrieve client info 
     client_info = run_query("SELECT * FROM client LEFT JOIN client_session ON client_session.client_id=client.id WHERE client_session.token=?",[current_token])
     print(client_info)
+    # Collect client info in resp list and return to client
     resp = []
     for item in client_info:
         client = {}
@@ -78,7 +80,7 @@ def client_register():
     client['username'] = client_data[0][2]
     client['token'] = login_token
     run_query("INSERT INTO client_session (token,client_id) VALUES (?,?)", [login_token, client_id])
-    return jsonify(''),201
+    return jsonify('Client account created successfully.'),201  # Client redirected to logged-in restaurant list
 
 
 @app.patch('/api/client')
@@ -100,7 +102,7 @@ def edit_profile():
     user_id = user_data[0][0]
     run_query("UPDATE client SET (email, username, password, first_name, last_name, picture_url) WHERE id=?", [email,username,password,first_name, last_name, picture_url, user_id])
     # Create error(500) for the server time out, or another server issue during the update process
-    return jsonify("Your info was successfully edited"), 200
+    return jsonify("Your info was successfully edited"), 200, 204
 
 
 @app.delete('/api/client')
@@ -113,4 +115,4 @@ def delete_account():
     user_id = session[0][3]
     run_query("DELETE FROM client_session WHERE token=?",[session_token])
     run_query("DELETE FROM client WHERE id=?",[user_id])
-    return jsonify(""), 201
+    return jsonify(""), 204

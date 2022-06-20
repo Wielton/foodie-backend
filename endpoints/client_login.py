@@ -37,7 +37,8 @@ def client_login():
     logged_in = run_query("SELECT * FROM client_session WHERE client_id=?",[client_id])
     if not logged_in:
         run_query("INSERT INTO client_session (token,client_id) VALUES (?,?)", [login_token,client_id])
-    elif client_id == logged_in[0][3]:
+    if client_id == logged_in[0][3]:
+        # I could UPDATE here but I chose to delete then create a new session instance as I figured this is a better thing to do because of token lifecycles and other errors that could occur from just updating one column
         run_query("DELETE FROM client_session WHERE client_id=?",[client_id])
         run_query("INSERT INTO client_session (token,client_id) VALUES (?,?)", [login_token,client_id])
     return jsonify(client),201
@@ -47,8 +48,8 @@ def client_logout():
     params = request.args
     session_token = params.get('token')
     session = run_query("SELECT * FROM client_session WHERE token=?",[session_token])
-    if session[0][1]:
-        run_query("DELETE FROM client_session WHERE token=?",[session_token])
-        return jsonify("Client logged out"),200
-    else:
-        return jsonify("Error, token not found."),500
+    if not session:
+        return jsonify("You must be logged in to delete your account."), 401
+    run_query("DELETE FROM client_session WHERE token=?",[session_token])
+    return jsonify(""),204
+    

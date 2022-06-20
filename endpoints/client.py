@@ -73,12 +73,8 @@ def client_register():
         return jsonify("Password required"), 422
     run_query("INSERT INTO client (email, username, password, first_name, last_name, picture_url) VALUES (?,?,?,?,?,?)", [email, username, password, first_name, last_name, picture_url])
     client_data = run_query("SELECT * FROM client WHERE username=?", [username])
-    login_token = uuid.uuid4()
+    login_token = str(uuid.uuid4().hex)
     client_id = client_data[0][0]
-    client = {}
-    client['id'] = client_data[0][0]
-    client['username'] = client_data[0][2]
-    client['token'] = login_token
     run_query("INSERT INTO client_session (token,client_id) VALUES (?,?)", [login_token, client_id])
     return jsonify('Client account created successfully.'),201  # Client redirected to logged-in restaurant list
 

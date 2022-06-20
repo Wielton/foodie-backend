@@ -11,6 +11,7 @@ def encrypt_password(password):
     decrypted_password = hash_result.decode()
     return decrypted_password
 
+
 # Restaurant get, signup and edit
 
 @app.get('/api/restaurant')
@@ -53,7 +54,7 @@ def restaurant_register():
     address = data.get('address')
     if not address:
         return jsonify("Address required"), 422
-    phone_num = data.get('phoneNumber')
+    phone_num = data.get('phoneNum')
     if not phone_num:
         return jsonify("Phone number required"), 422
     bio = data.get('bio')
@@ -73,7 +74,7 @@ def restaurant_register():
     if not restaurant_data:
         return jsonify("Server experienced an error."), 500
     restaurant_id = restaurant_data[0][0]
-    login_token = uuid.uuid4()
+    login_token = str(uuid.uuid4().hex)
     run_query("INSERT INTO restaurant_session (token, restaurant_id) VALUES (?,?)", [login_token, restaurant_id])
     return jsonify("Restaurant successfully created"), 201
 

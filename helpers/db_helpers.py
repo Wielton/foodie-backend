@@ -33,8 +33,6 @@ def run_query(statement, args=None):
                 if item not in result:
                     print("Result not found")
                     return None
-                print(item)
-                print(result)
                 return result
         # elif statement.startswith("INSERT"):
         #     cursor.execute(statement,args)

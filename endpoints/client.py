@@ -1,3 +1,4 @@
+from click import pass_obj
 from app import app
 from flask import jsonify, request
 from helpers.db_helpers import *
@@ -96,49 +97,48 @@ def edit_profile():
     # client_last_name = client_info[0][5]
     # client_picture_url= client_info[0][7]
     data = request.json
-    build_statement = "UPDATE client SET "
+    build_statement = ""
     build_vals = []
-    if not data.get('username'):
-        pass
-    else:
+    if data.get('username'):
         new_username = data.get('username')
-        statement_username = "username = ? "
-        build_statement += statement_username
+        build_statement+="username=?, "
         build_vals.append(new_username)
-    if not data.get('password'):
-        pass
+        print(build_statement)
     else:
+        pass
+    if data.get('password'):
         new_password_input = data.get('password')
         new_password = encrypt_password(new_password_input)
-        statement_password = "password = ? "
-        build_statement += statement_password
+        build_statement+="password=?, "
         build_vals.append(new_password)
-    if not data.get('firstName'):
-        pass
+        print(build_statement)
     else:
+        pass
+    if data.get('firstName'):
         new_first_name = data.get('firstName')
-        statement_first_name = "first_name=? "
-        build_statement += statement_first_name
+        build_statement.append("first_name=? ")
         build_vals.append(new_first_name)
-    if not data.get('lastName'):
-        pass
     else:
+        pass
+    if data.get('lastName'):
         new_last_name = data.get('lastName')
-        statement_last_name = "last_name=? "
-        build_statement += statement_last_name
+        build_statement += "last_name=? "
         build_vals.append(new_last_name)
-    if not data.get('pictureUrl'):
-        pass
     else:
+        pass
+    if data.get('pictureUrl'):
         new_picture_url = data.get('pictureUrl')
-        statement_picture_url = "picture_url=? "
-        build_statement += statement_picture_url
+        build_statement += "picture_url=? "
         build_vals.append(new_picture_url)
+    else:
+        pass
     
     # SELECT client session table data and JOIN client table data.  Set client data to variables then use those variables as the old values. 
     # The old value will be used in the UPDATE statement to either keep it or change it depending on client input.
     build_vals.append(client_id)
-    run_query(build_statement + "WHERE id=?", build_vals)
+    statement = str(build_statement)
+    print("UPDATE client SET "+statement+" WHERE id=?", build_vals)
+    run_query("UPDATE client SET "+statement+" WHERE id=?", build_vals)
     # Create error(500) for the server time out, or another server issue during the update process
     return jsonify("Your info was successfully edited"), 204
 

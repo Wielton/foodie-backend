@@ -98,6 +98,6 @@ def edit_restaurant_profile():
     if not city_list:
         return jsonify("City is not valid."), 422
     city_id = city_list[0][0]
-    run_query("UPDATE restaurant SET (email, name, address, phone_num, bio, profile_url, banner_url, city) WHERE id=?", [email,name,address, phone_num, bio, picture_url, banner_url, city_id, restuarant_id])
+    run_query("UPDATE restaurant SET (email=?, name=?, address=?, phone_num=?, bio=?, profile_url=?, banner_url=?, city=?) WHERE id=?", [email,name,address, phone_num, bio, picture_url, banner_url, city_id, restuarant_id])
     # Create error(500) for the server time out, or another server issue during the update process
     return jsonify("Your info was successfully edited"), 204

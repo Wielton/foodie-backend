@@ -81,24 +81,66 @@ def client_register():
 
 @app.patch('/api/client')
 def edit_profile():
+    # GET params for session check
     params = request.args
     session_token = params.get('token')
-    data = request.json
-    email = data.get('email')
-    username = data.get('username')
-    password = data.get('password')
-    first_name = data.get('firstName')
-    last_name = data.get('lastName')
-    picture_url = data.get('pictureUrl')
     if not session_token:
         return jsonify("Session token not found!"), 401
-    user_data = run_query("SELECT client_id FROM client_session WHERE token=?",[session_token])
-    if not user_data:
+    client_info = run_query("SELECT * FROM client JOIN client_session ON client_session.client_id=client.id WHERE token=?",[session_token])
+    if not client_info:
         return jsonify("Server encountered an error. Please try again"),500
-    user_id = user_data[0][0]
-    run_query("UPDATE client SET (email, username, password, first_name, last_name, picture_url) WHERE id=?", [email,username,password,first_name, last_name, picture_url, user_id])
+    client_id = client_info[0][0]
+    # client_username = client_info[0][2]
+    # client_password = client_info[0][3]
+    # client_first_name = client_info[0][4]
+    # client_last_name = client_info[0][5]
+    # client_picture_url= client_info[0][7]
+    data = request.json
+    build_statement = "UPDATE client SET "
+    build_vals = []
+    if not data.get('username'):
+        pass
+    else:
+        new_username = data.get('username')
+        statement_username = "username = ? "
+        build_statement += statement_username
+        build_vals.append(new_username)
+    if not data.get('password'):
+        pass
+    else:
+        new_password_input = data.get('password')
+        new_password = encrypt_password(new_password_input)
+        statement_password = "password = ? "
+        build_statement += statement_password
+        build_vals.append(new_password)
+    if not data.get('firstName'):
+        pass
+    else:
+        new_first_name = data.get('firstName')
+        statement_first_name = "first_name=? "
+        build_statement += statement_first_name
+        build_vals.append(new_first_name)
+    if not data.get('lastName'):
+        pass
+    else:
+        new_last_name = data.get('lastName')
+        statement_last_name = "last_name=? "
+        build_statement += statement_last_name
+        build_vals.append(new_last_name)
+    if not data.get('pictureUrl'):
+        pass
+    else:
+        new_picture_url = data.get('pictureUrl')
+        statement_picture_url = "picture_url=? "
+        build_statement += statement_picture_url
+        build_vals.append(new_picture_url)
+    
+    # SELECT client session table data and JOIN client table data.  Set client data to variables then use those variables as the old values. 
+    # The old value will be used in the UPDATE statement to either keep it or change it depending on client input.
+    build_vals.append(client_id)
+    run_query(build_statement + "WHERE id=?", build_vals)
     # Create error(500) for the server time out, or another server issue during the update process
-    return jsonify("Your info was successfully edited"), 200, 204
+    return jsonify("Your info was successfully edited"), 204
 
 
 @app.delete('/api/client')

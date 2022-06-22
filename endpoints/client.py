@@ -1,3 +1,4 @@
+from distutils.command.build_clib import build_clib
 from click import pass_obj
 from app import app
 from flask import jsonify, request
@@ -91,51 +92,57 @@ def edit_profile():
     if not client_info:
         return jsonify("Server encountered an error. Please try again"),500
     client_id = client_info[0][0]
-    # client_username = client_info[0][2]
-    # client_password = client_info[0][3]
-    # client_first_name = client_info[0][4]
-    # client_last_name = client_info[0][5]
-    # client_picture_url= client_info[0][7]
     data = request.json
     build_statement = ""
+    # string join
     build_vals = []
     if data.get('username'):
         new_username = data.get('username')
-        build_statement+="username=?, "
         build_vals.append(new_username)
+        build_statement+="username=?"
         print(build_statement)
     else:
         pass
     if data.get('password'):
         new_password_input = data.get('password')
         new_password = encrypt_password(new_password_input)
-        build_statement+="password=?, "
         build_vals.append(new_password)
+        if ("username") not in build_statement:
+            build_statement+=",password=?"
+        else:
+            build_statement+="password=?"
         print(build_statement)
     else:
         pass
     if data.get('firstName'):
         new_first_name = data.get('firstName')
-        build_statement.append("first_name=? ")
         build_vals.append(new_first_name)
+        if ("username") or ("password") in build_statement:
+            build_statement+=",first_name=?"
+        else:
+            build_statement+="first_name=?"
     else:
         pass
     if data.get('lastName'):
         new_last_name = data.get('lastName')
-        build_statement += "last_name=? "
         build_vals.append(new_last_name)
+        if ("username") or ("password") or ("first_name") in build_statement:
+            build_statement+=",last_name=?"
+        else:
+            build_statement+="last_name=?"
     else:
         pass
     if data.get('pictureUrl'):
         new_picture_url = data.get('pictureUrl')
-        build_statement += "picture_url=? "
         build_vals.append(new_picture_url)
+        if ("username") or ("password") or ("first_name") or ("last_name") in build_statement:
+            build_statement+=",picture_url=?"
+        else:
+            build_statement+="picture_url=?"
     else:
         pass
-    
-    # SELECT client session table data and JOIN client table data.  Set client data to variables then use those variables as the old values. 
-    # The old value will be used in the UPDATE statement to either keep it or change it depending on client input.
     build_vals.append(client_id)
+    print(build_statement)
     statement = str(build_statement)
     print("UPDATE client SET "+statement+" WHERE id=?", build_vals)
     run_query("UPDATE client SET "+statement+" WHERE id=?", build_vals)

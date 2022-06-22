@@ -35,6 +35,8 @@ def client_login():
         run_query("INSERT INTO client_session (token,client_id) VALUES (?,?)", [login_token,client_id])
     return jsonify("Client account created"),201
 
+
+
 @app.delete('/api/client-login')
 def client_logout():
     params = request.args

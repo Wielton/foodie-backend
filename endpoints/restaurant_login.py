@@ -39,10 +39,12 @@ def restaurant_login():
 def restaurant_logout():
     params = request.args
     session_token = params.get('token')
-    if not session_token:
-        return jsonify("You must be logged in to delete your account."), 401
-    session = run_query("SELECT * FROM restaurant_session WHERE token=?",[session_token])
-    if not session:
-        return jsonify("Session expired"), 401
-    run_query("DELETE FROM restaurant_session WHERE token=?",[session_token])
-    return jsonify(""),204
+    if session_token is not None:
+        session = run_query("SELECT * FROM restaurant_session WHERE token=?",[session_token])
+        if session is not None:
+            run_query("DELETE FROM restaurant_session WHERE token=?",[session_token])
+            return jsonify("Logged out"),204
+        else:
+            return jsonify("Failed to logout, please try again"), 500
+    else:
+        return jsonify("Session not found"), 500

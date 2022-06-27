@@ -29,17 +29,12 @@ def run_query(statement, args=None):
         if statement.startswith("SELECT"):
             cursor.execute(statement, args)
             result = cursor.fetchall()
+            print(result)
             for item in result:
                 if item not in result:
                     print("Result not found")
                     return None
                 return result
-        # elif statement.startswith("INSERT"):
-        #     cursor.execute(statement,args)
-        #     conn.commit()
-        #     print("Welcome, you are now registered!")   
-        #     # Get the first person from the results list, then retrieve the 2nd index(column) from that row
-        #     # print(result[0][1])
         else:
             cursor.execute(statement, args)
             conn.commit()

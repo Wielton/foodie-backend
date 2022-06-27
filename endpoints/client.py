@@ -37,20 +37,23 @@ def get_client_info():
         return jsonify("Session token not found!"), 401
     # If valid token then retrieve client info 
     client_info = run_query("SELECT * FROM client LEFT JOIN client_session ON client_session.client_id=client.id WHERE client_session.token=?",[current_token])
-    print(client_info)
-    # Collect client info in resp list and return to client
-    resp = []
-    for item in client_info:
-        client = {}
-        client['id'] = item[0]
-        client['email'] = item[1]
-        client['username'] = item[2]
-        client['firstName'] = item[4]
-        client['lastName'] = item[5]
-        client['createdAt'] = item[6]
-        client['pictureUrl'] = item[7]
-        resp.append(client)
-    return jsonify(resp), 200
+    if client_info is not None:
+        print(client_info)
+        # Collect client info in resp list and return to client
+        resp = []
+        for item in client_info:
+            client = {}
+            client['clientId'] = item[0]
+            client['email'] = item[1]
+            client['username'] = item[2]
+            client['firstName'] = item[4]
+            client['lastName'] = item[5]
+            client['createdAt'] = item[6]
+            client['pictureUrl'] = item[7]
+            resp.append(client)
+        return jsonify(resp), 200
+    else:
+        return jsonify("No session found"), 500
 
 
 @app.post('/api/client')
@@ -89,66 +92,62 @@ def edit_profile():
     if not session_token:
         return jsonify("Session token not found!"), 401
     client_info = run_query("SELECT * FROM client JOIN client_session ON client_session.client_id=client.id WHERE token=?",[session_token])
-    if not client_info:
-        return jsonify("Server encountered an error. Please try again"),500
-    client_id = client_info[0][0]
-    data = request.json
-    build_statement = ""
-    # string join
-    build_vals = []
-    if data.get('username'):
-        new_username = data.get('username')
-        build_vals.append(new_username)
-        build_statement+="username=?"
-        print(build_statement)
-    else:
-        pass
-    if data.get('password'):
-        new_password_input = data.get('password')
-        new_password = encrypt_password(new_password_input)
-        build_vals.append(new_password)
-        if ("username") not in build_statement:
-            build_statement+=",password=?"
+    if client_info is not None:
+        client_id = client_info[0][0]
+        data = request.json
+        build_statement = ""
+        # string join
+        build_vals = []
+        if data.get('username'):
+            new_username = data.get('username')
+            build_vals.append(new_username)
+            build_statement+="username=?"
         else:
-            build_statement+="password=?"
-        print(build_statement)
-    else:
-        pass
-    if data.get('firstName'):
-        new_first_name = data.get('firstName')
-        build_vals.append(new_first_name)
-        if ("username") or ("password") in build_statement:
-            build_statement+=",first_name=?"
+            pass
+        if data.get('password'):
+            new_password_input = data.get('password')
+            new_password = encrypt_password(new_password_input)
+            build_vals.append(new_password)
+            if ("username" in build_statement):
+                build_statement+=",password=?"
+            else:
+                build_statement+="password=?"
         else:
-            build_statement+="first_name=?"
-    else:
-        pass
-    if data.get('lastName'):
-        new_last_name = data.get('lastName')
-        build_vals.append(new_last_name)
-        if ("username") or ("password") or ("first_name") in build_statement:
-            build_statement+=",last_name=?"
+            pass
+        if data.get('firstName'):
+            new_first_name = data.get('firstName')
+            build_vals.append(new_first_name)
+            if ("username" in build_statement) or ("password" in build_statement):
+                build_statement+=",first_name=?"
+            else:
+                build_statement+="first_name=?"
         else:
-            build_statement+="last_name=?"
-    else:
-        pass
-    if data.get('pictureUrl'):
-        new_picture_url = data.get('pictureUrl')
-        build_vals.append(new_picture_url)
-        if ("username") or ("password") or ("first_name") or ("last_name") in build_statement:
-            build_statement+=",picture_url=?"
+            pass
+        if data.get('lastName'):
+            new_last_name = data.get('lastName')
+            build_vals.append(new_last_name)
+            if ("username" in build_statement) or ("password" in build_statement) or ("first_name" in build_statement):
+                build_statement+=",last_name=?"
+            else:
+                build_statement+="last_name=?"
         else:
-            build_statement+="picture_url=?"
+            pass
+        if data.get('pictureUrl'):
+            new_picture_url = data.get('pictureUrl')
+            build_vals.append(new_picture_url)
+            if ("username" in build_statement) or ("password" in build_statement) or ("first_name" in build_statement) or ("last_name" in build_statement):
+                build_statement+=",picture_url=?"
+            else:
+                build_statement+="picture_url=?"
+        else:
+            pass
+        build_vals.append(client_id)
+        statement = str(build_statement)
+        run_query("UPDATE client SET "+statement+" WHERE id=?", build_vals)
+        # Create error(500) for the server time out, or another server issue during the update process
+        return jsonify("Your info was successfully edited"), 204
     else:
-        pass
-    build_vals.append(client_id)
-    print(build_statement)
-    statement = str(build_statement)
-    print("UPDATE client SET "+statement+" WHERE id=?", build_vals)
-    run_query("UPDATE client SET "+statement+" WHERE id=?", build_vals)
-    # Create error(500) for the server time out, or another server issue during the update process
-    return jsonify("Your info was successfully edited"), 204
-
+        return jsonify("Session not found"), 500
 
 @app.delete('/api/client')
 def delete_account():
@@ -157,7 +156,10 @@ def delete_account():
     if not session_token:
         return jsonify("Session token not found!"), 401
     session = run_query("SELECT * FROM client_session WHERE token=?",[session_token])
-    user_id = session[0][3]
-    run_query("DELETE FROM client_session WHERE token=?",[session_token])
-    run_query("DELETE FROM client WHERE id=?",[user_id])
-    return jsonify(""), 204
+    if session is not None:
+        user_id = session[0][3]
+        run_query("DELETE FROM client_session WHERE token=?",[session_token])
+        run_query("DELETE FROM client WHERE id=?",[user_id])
+        return jsonify("Account deleted"), 204
+    else:
+        return jsonify("You must be logged in to delete your account"), 500

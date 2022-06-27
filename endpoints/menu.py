@@ -14,23 +14,28 @@ def create_menu_item():
     login_token = params.get('token')
     if not login_token:
         return jsonify("You must be logged in to create a new menu item"), 401
-    restaurant_id = params.get('id')
-    current_token = run_query("SELECT * FROM restaurant_session WHERE token=?",[login_token])
-    if login_token != current_token:    
-        return jsonify("Error, you need to be signed in to create a menu item"),403
-    else:
+    session = run_query("SELECT * FROM restaurant_session WHERE token=?",[login_token])
+    if session is not None:    
+        restaurant_id = session[0][3]
         name = data.get('name')
         description = data.get('description')
         price = data.get('price')
         image_url = data.get('imageUrl')
+        if not name:
+            return jsonify("Item namerequired"), 422
+        if not description:
+            return jsonify("Item description required"), 422
+        if not price:
+            return jsonify("Item price required"), 422
         run_query("INSERT INTO menu_item (name, description, price, image_url, restaurant_id) VALUES (?,?,?,?,?)",[name, description, price, image_url, restaurant_id])
-        print("The item was added successfully")
-    return jsonify("Complete")
+        return jsonify("Menu item successfully created"), 204
+    else:
+        return jsonify("You must be logged in to create a new menu item"), 500
 
 
 # Get menu items
 # SUCCESS HTTP CODE: 200
-# ERROR HTTP CODES: 401, 422
+# ERROR HTTP CODES: 401, 422 
 
 @app.get('/api/menu')
 def get_menu_item():
@@ -92,19 +97,63 @@ def get_menu_item():
 @app.patch('/api/menu')
 def edit_menu():
     params = request.args
-    menu_id= params.get('menuId')
     session_token = params.get('token')
-    restaurant_id = params.get('restaurantId')
-    logged_in = run_query("SELECT * FROM restaurant_session WHERE token=? AND restaurant_id=?",[session_token,restaurant_id])
-    if not logged_in:
-        return jsonify("You must be logged in to create a new menu item"), 401
-    data = request.json
-    name = data.get('name')
-    description = data.get('description')
-    price = data.get('price')
-    image = data.get('imageUrl')
-    run_query("UPDATE menu_item SET (name=?, description=?, price=?, image_url=?) WHERE id=? AND restaurant_id=?",[name, description, price, image, menu_id,restaurant_id])
-    return jsonify(""), 204
+    session = run_query("SELECT * FROM restaurant_session WHERE token=?",[session_token])
+    if session is not None:
+        data = request.json
+        menu_id = params.get('menuId')
+        build_statement = ""
+        # string join
+        build_vals = []
+        if data.get('name'):
+            new_name = data.get('name')
+            build_vals.append(new_name)
+            build_statement+="name=?"
+        else:
+            pass
+        if data.get('description'):
+            new_description = data.get('description')
+            build_vals.append(new_description)
+            if ("name" in build_statement):
+                build_statement+=",description=?"
+            else:
+                build_statement+="description=?"
+        else:
+            pass
+        if data.get('price'):
+            new_price = data.get('price')
+            build_vals.append(new_price)
+            if ("name" in build_statement) or ("description" in build_statement):
+                build_statement+=",price=?"
+            else:
+                build_statement+="price=?"
+        else:
+            pass
+        if data.get('imageUrl'):
+            new_image = data.get('imageUrl')
+            build_vals.append(new_image)
+            if ("name" in build_statement) or ("description" in build_statement) or ("price" in build_statement):
+                build_statement+=",image_url=?"
+            else:
+                build_statement+="image_url=?"
+        else:
+            pass
+        build_vals.append(menu_id)
+        statement = str(build_statement)
+        print(statement)
+        run_query("UPDATE menu_item SET "+statement+" WHERE id=?", build_vals)
+        # Create error(500) for the server time out, or another server issue during the update process
+        return jsonify("Item has been successfully edited"), 204
+    else:
+        return jsonify("You must be logged in to edit menu item"), 401
+
+# client_info = run_query("SELECT * FROM client JOIN client_session ON client_session.client_id=client.id WHERE token=?",[session_token])
+#     if not client_info:
+#         return jsonify("Server encountered an error. Please try again"),500
+#     client_id = client_info[0][0]
+#     data = request.json
+#     
+#     return jsonify("Your info was successfully edited"), 204
     
 
 # Delete menu item

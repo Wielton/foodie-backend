@@ -16,7 +16,7 @@ if mode == "testing":
     app.run(debug=True)
 elif mode == "production":
     import bjoern
-    bjoern.run(app, "0.0.0.0", 5004)
+    bjoern.run(app, "0.0.0.0", 5006)
     print('Running in development mode!')
 else:
     print("Invalid mode.  Must be testing or production")

@@ -11,7 +11,7 @@ from helpers.db_helpers import *
 def create_menu_item():
     params = request.args
     data = request.json
-    login_token = params.get('token')
+    login_token = params.get('sessionToken')
     if not login_token:
         return jsonify("You must be logged in to create a new menu item"), 401
     session = run_query("SELECT * FROM restaurant_session WHERE token=?",[login_token])
@@ -41,56 +41,55 @@ def create_menu_item():
 def get_menu_item():
     params = request.args
     restaurant_id = params.get('restaurantId')
-    menu_id = params.get('menuId')
     # Got parameters
     # If no parameters and client wants to search menu items:
-    if not restaurant_id and not menu_id:
+    if not restaurant_id:
         # Get all menu items and restaurant name from menu_item table 
         menu_items = run_query("SELECT *, restaurant.name FROM menu_item JOIN restaurant ON restaurant_id=restaurant.id")
         # Build the menu items list with restaurant name joined
         resp = []
         for item in menu_items:
-            an_obj = {} 
-            an_obj['id'] = item[0]
-            an_obj['name'] = item[1]
-            an_obj['description'] = item[2]
-            an_obj['price'] = float(item[3])
-            an_obj['image'] = item[4]
-            an_obj['restaurantName'] = item[9]
+            menu_item = {} 
+            menu_item['menuId'] = item[0]
+            menu_item['name'] = item[1]
+            menu_item['description'] = item[2]
+            menu_item['price'] = float(item[3])
+            menu_item['imageUrl'] = item[4]
+            menu_item['restaurantId'] = item[5]
+            menu_item['restaurantName'] = item[9]
             # Fetch cities, find the matching id's, then add to city name to corresponding restaurant in menu items list
             cities = run_query("SELECT * FROM city")
             for city in cities:
                     if city[0] == item[15]:
-                        an_obj['city'] = city[1]
-            resp.append(an_obj)        
-        print(resp)
-        return jsonify(resp), 200
+                        menu_item['city'] = city[1]
+            resp.append(menu_item)
+        return jsonify(resp)
     # If client clicks on a specific restaurant, their corresponding menu will populate then handle response same as above
-    elif restaurant_id and not menu_id:
-        menu_items = run_query("SELECT * FROM menu_item WHERE restaurant_id=?",[restaurant_id])
-        resp = []
-        for item in menu_items:
-            an_obj = {} 
-            an_obj['id'] = item[0]
-            an_obj['name'] = item[1]
-            an_obj['description'] = item[2]
-            an_obj['price'] = float(item[3])
-            an_obj['image'] = item[4]
-            resp.append(an_obj)
-        return jsonify(resp), 200
+    menu_items = run_query("SELECT * FROM menu_item WHERE restaurant_id=?",[restaurant_id])
+    resp = []
+    for item in menu_items:
+        menu_item = {} 
+        menu_item['menuId'] = item[0]
+        menu_item['name'] = item[1]
+        menu_item['description'] = item[2]
+        menu_item['price'] = float(item[3])
+        menu_item['imageUrl'] = item[4]
+        menu_item['restaurantId'] = item[5]
+        resp.append(menu_item)
+    return jsonify(resp)
     # This will fetch the specific menu item from its restaurant
-    else:
-        menu_items = run_query("SELECT * FROM menu_item WHERE restaurant_id=? AND id=?",[restaurant_id,menu_id])
-        resp = []
-        for item in menu_items:
-            an_obj = {}
-            an_obj['id'] = item[0]
-            an_obj['name'] = item[1]
-            an_obj['description'] = item[2]
-            an_obj['price'] = float(item[3])
-            an_obj['image'] = item[4]
-            resp.append(an_obj)
-        return jsonify(resp), 200
+    # else:
+    #     menu_items = run_query("SELECT * FROM menu_item WHERE restaurant_id=? AND id=?",[restaurant_id])
+    #     resp = []
+    #     for item in menu_items:
+    #         menu_item = {}
+    #         menu_item['menuId'] = item[0]
+    #         menu_item['name'] = item[1]
+    #         menu_item['description'] = item[2]
+    #         menu_item['price'] = float(item[3])
+    #         menu_item['imageUrl'] = item[4]
+    #         resp.append(menu_item)
+    #     return jsonify(resp), 200
 
 # Edit menu item
 

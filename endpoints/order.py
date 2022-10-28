@@ -135,7 +135,7 @@ def get_order():
 #     }
 # Client POST order
 @app.post('/api/order')
-def post_order():
+def place_order():
     # - A list of order items[(menuId's)] from a client(clientId), from one restaurant(restaurantId) 
     #   will be received from frontend
     # - The order needs to be created first, with the clientId and restaurantId, for an orders.id 
@@ -143,27 +143,30 @@ def post_order():
     #   using the menu_item.id and corresponding orders.id where the restaurant_id is matching
     # - Once all the items have been placed into the order_menu_item, 
     #   the order is then confirmed.
-    params = request.args
+    
     data = request.json
-    menu_items = data.get('items')
+    menu_items = data.get('itemIds')
     restaurant_id = data.get('restaurantId')
-    # restaurant_id = data.get('restaurantId')
-    session_token = params.get('token')
+    params = request.args
+    print(menu_items, restaurant_id)
+    session_token = params.get('sessionToken')
+    if not session_token:
+        return jsonify("You must be logged in")
     current_session = run_query("SELECT client_id FROM client_session WHERE token=?",[session_token])
-    if current_session is not None:
-        # Create the order in the orders table with client_id and restaurant_id and use id for order_menu_item
-        # Use cursor.lastRowId() to extract the most recent row created from the search parameters
-        client_id = current_session[0][0]
-        run_query("INSERT INTO orders (client_id,restaurant_id) VALUES (?,?)", [client_id,restaurant_id])
-        menu_id = run_query("SELECT id FROM orders WHERE client_id=? AND restaurant_id=?",[client_id,restaurant_id])
-        menu_item_id = menu_id[0][0]
+    # Create the order in the orders table with client_id and restaurant_id and use id for order_menu_item
+    # Use cursor.lastRowId() to extract the most recent row created from the search parameters
+    client_id = current_session[0][0]
+    run_query("INSERT INTO orders (client_id,restaurant_id) VALUES (?,?)", [client_id,restaurant_id])
+    order_ids = run_query("SELECT id FROM orders WHERE client_id=? AND restaurant_id=?",[client_id,restaurant_id])
+    print(order_ids)
+    current_order_id = order_ids[0][0]58
         # - Now the items can be individually inserted into the order_menu_item table along with the orders.id 
         # - Optimize by taking each item, attaching the corresponding orders.id, then insert as one query.
         #    instead of the below solution which could potentially encounter partial errors being 
         #    fulfilled because of a missing menu item id
-        for item in menu_items:
-            run_query("INSERT INTO order_menu_item (menu_item_id,order_id) VALUES (?,?)",[item,menu_item_id])
-            print(item)
+    for item in menu_items:
+        run_query("INSERT INTO order_menu_item (menu_item_id,order_id) VALUES (?,?)",[item,current_order_id])
+        print(item)
         # First thing I need to do is create an order in the order table using the menu_item.id a
         # I want to get the id and restaurant_id from the menu_item table as a list
         # menu_item = run_query("SELECT id, restaurant_id FROM menu_item WHERE id=?", item)
@@ -171,7 +174,7 @@ def post_order():
         # run_query("SELECT menu_item.id, orders.id INTO order_menu_item FROM orders RIGHT JOIN menu_item ON menu_item.restaurant_id=orders.restaurant_id WHERE restaurant.id=?",restaurant_id)
         # Once the client is finished adding the items, the items are added (as a list)
         # to the orders table ("INSERT INTO ")
-        return jsonify("Item added to order"), 201
+    return jsonify("Item added to order"), 201
     
 
     

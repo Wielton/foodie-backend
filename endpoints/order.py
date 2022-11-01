@@ -150,8 +150,9 @@ def place_order():
     params = request.args
     print(menu_items, restaurant_id)
     session_token = params.get('sessionToken')
-    if not session_token:
-        return jsonify("You must be logged in")
+    print(session_token)
+    if session_token is None:
+        return jsonify("You must be logged in"), 401
     current_session = run_query("SELECT client_id FROM client_session WHERE token=?",[session_token])
     # Create the order in the orders table with client_id and restaurant_id and use id for order_menu_item
     # Use cursor.lastRowId() to extract the most recent row created from the search parameters
@@ -159,7 +160,7 @@ def place_order():
     run_query("INSERT INTO orders (client_id,restaurant_id) VALUES (?,?)", [client_id,restaurant_id])
     order_ids = run_query("SELECT id FROM orders WHERE client_id=? AND restaurant_id=?",[client_id,restaurant_id])
     print(order_ids)
-    current_order_id = order_ids[0][0]58
+    current_order_id = order_ids[0][0]
         # - Now the items can be individually inserted into the order_menu_item table along with the orders.id 
         # - Optimize by taking each item, attaching the corresponding orders.id, then insert as one query.
         #    instead of the below solution which could potentially encounter partial errors being 
@@ -203,7 +204,8 @@ def handle_order():
     order_id = data.get('orderId')
     session_token = params.get('token')
     if not session_token:
-        return jsonify("Session token not found!"), 422
+        # prompt user to login in order to place order
+        return jsonify("Session token not found!"), 401
     if data.get('cancelOrder'):
         client_info = run_query("SELECT * FROM client_session WHERE token=?",[session_token])
         if not client_info:

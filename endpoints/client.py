@@ -32,8 +32,8 @@ def encrypt_password(password):
 def get_client_info():
     params = request.args
     # Check for valid session token
-    current_token = params.get('token')
-    if not current_token:   # If no session found then return error
+    current_token = params.get('sessionToken')
+    if current_token is None:   # If no session found then return error
         return jsonify("Session token not found!"), 401
     # If valid token then retrieve client info 
     client_info = run_query("SELECT * FROM client LEFT JOIN client_session ON client_session.client_id=client.id WHERE client_session.token=?",[current_token])

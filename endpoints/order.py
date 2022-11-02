@@ -38,63 +38,71 @@ from helpers.db_helpers import *
 @app.get('/api/order')
 def get_order():
     params = request.args
-    session_token = params.get('token')
-    if not session_token:
-        return jsonify("Session token not found!"), 422
+    if params.get('sessionToken'):
+        session_token = params.get('sessionToken')
     # Clients: GET all orders they made.  Optional arg to get info about specific order 
-    session = run_query("SELECT client_id FROM client_session WHERE token=?",[session_token])
-    if session is not None:
-        client_id = session[0][0]
-        resp = []
-        all_orders = run_query("SELECT orders.id,orders.created_at,restaurant.name FROM orders JOIN restaurant ON restaurant.id=orders.restaurant_id WHERE client_id=?",[client_id])
-        for orders in all_orders:
-            order = {}
-            order['id'] = orders[0]
-            order['createdAt'] = orders[1]
-            order['restaurantName'] = orders[2]
-            resp.append(order)
-    else:
-        session = run_query("SELECT restaurant_id FROM restaurant_session WHERE token=?",[session_token])
+        session = run_query("SELECT client_id FROM client_session WHERE token=?",[session_token])
         if session is not None:
-            restaurant_id = session[0][0]
-            all_orders = run_query("SELECT * FROM orders WHERE restaurant_id=?",[restaurant_id])
-            print(all_orders)
-            # items_list = run_query("SELECT menu_item_id FROM order_menu_item")
+            client_id = session[0][0]
             resp = []
+            # Get the orderId, restaurant name, and time created.
+            all_orders = run_query("SELECT orders.*,restaurant.name FROM orders JOIN restaurant ON restaurant.id=orders.restaurant_id WHERE client_id=?",[client_id])
             for orders in all_orders:
+                order = {}
+                order['orderId'] = orders[0]
+                order['createdAt'] = orders[1]
+                order['restaurantName'] = orders[7]
+                if orders[2] is 1:
+                    order['isConfirmed'] = orders[2]
+                elif orders[3] is 1:
+                    order['isCompleted'] = orders[3]
+                elif orders[4] is 1:
+                    order['isCancelled'] = orders[4]
+                resp.append(order)
+    else:
+        restaurant_session_token = params.get('restaurantSessionToken')
+        session = run_query("SELECT restaurant_id FROM restaurant_session WHERE token=?",[restaurant_session_token])
+        if session is None:
+            return jsonify("You must be logged in")
+        restaurant_id = session[0][0]
+        all_orders = run_query("SELECT * FROM orders WHERE restaurant_id=?",[restaurant_id])
+        print(all_orders)
+            # items_list = run_query("SELECT menu_item_id FROM order_menu_item")
+        resp = []
+        for orders in all_orders:
                 # order_items = int(order_items_str)
                 # print(order_items)
                 # - The result is returning an INT 
                 #    but I need to convert that into a string reading: "true" or "false" 
                 # - I need to group the result into the same order and get the items
-                print(orders)
-                order = {}
-                order['orderId'] = orders[0]
-                order['createdAt'] = orders[1]
-                is_confirmed = str(orders[2])
-                is_completed = str(orders[3])
-                is_cancelled = str(orders[4])
-                if is_confirmed == "0" or is_completed == "0" or is_cancelled == "0":
-                    is_confirmed = "false"
-                    is_completed = "false"
-                    is_cancelled = "false"
-                else:
-                    is_confirmed = "true"
-                    is_completed = "true"
-                    is_cancelled = "true"
-                order['isConfirmed'] = is_confirmed
-                order['isCompleted'] = is_completed
-                order['isCancelled'] = is_cancelled
-                order['clientId'] = orders[5]
-                order['restaurantId'] = orders[6]
-                order_items = run_query("SELECT menu_item_id FROM order_menu_item WHERE order_id=?",[orders[0]])
-                print(order_items)
-                item_list = []
-                if order_items is not None:
-                    for item in order_items:
-                        item_list.append(item)
-                order['items'] = order_items
-                resp.append(order)
+            print(orders)
+            order = {}
+            order['orderId'] = orders[0]
+            order['createdAt'] = orders[1]
+            is_confirmed = str(orders[2])
+            is_completed = str(orders[3])
+            is_cancelled = str(orders[4])
+            if is_confirmed == "0" or is_completed == "0" or is_cancelled == "0":
+                is_confirmed = "false"
+                is_completed = "false"
+                is_cancelled = "false"
+            else:
+                is_confirmed = "true"
+                is_completed = "true"
+                is_cancelled = "true"
+            order['isConfirmed'] = is_confirmed
+            order['isCompleted'] = is_completed
+            order['isCancelled'] = is_cancelled
+            order['clientId'] = orders[5]
+            order['restaurantId'] = orders[6]
+            order_items = run_query("SELECT menu_item_id FROM order_menu_item WHERE order_id=?",[orders[0]])
+            print(order_items)
+            item_list = []
+            if order_items is not None:
+                for item in order_items:
+                    item_list.append(item)
+            order['items'] = order_items
+            resp.append(order)
             # for item in all_items:
             #     print(item)
             # order['items'] = item_list
@@ -147,10 +155,9 @@ def place_order():
     data = request.json
     menu_items = data.get('itemIds')
     restaurant_id = data.get('restaurantId')
+    print(menu_items)
     params = request.args
-    print(menu_items, restaurant_id)
     session_token = params.get('sessionToken')
-    print(session_token)
     if session_token is None:
         return jsonify("You must be logged in"), 401
     current_session = run_query("SELECT client_id FROM client_session WHERE token=?",[session_token])
@@ -159,15 +166,18 @@ def place_order():
     client_id = current_session[0][0]
     run_query("INSERT INTO orders (client_id,restaurant_id) VALUES (?,?)", [client_id,restaurant_id])
     order_ids = run_query("SELECT id FROM orders WHERE client_id=? AND restaurant_id=?",[client_id,restaurant_id])
-    print(order_ids)
-    current_order_id = order_ids[0][0]
+    print("Order Ids: ",order_ids)
+    current_order_id = order_ids[-1][0]
+    print(current_order_id)
         # - Now the items can be individually inserted into the order_menu_item table along with the orders.id 
         # - Optimize by taking each item, attaching the corresponding orders.id, then insert as one query.
         #    instead of the below solution which could potentially encounter partial errors being 
         #    fulfilled because of a missing menu item id
     for item in menu_items:
-        run_query("INSERT INTO order_menu_item (menu_item_id,order_id) VALUES (?,?)",[item,current_order_id])
         print(item)
+        
+        run_query("INSERT INTO order_menu_item (menu_item_id,order_id) VALUES (?,?)",[item,current_order_id])
+        
         # First thing I need to do is create an order in the order table using the menu_item.id a
         # I want to get the id and restaurant_id from the menu_item table as a list
         # menu_item = run_query("SELECT id, restaurant_id FROM menu_item WHERE id=?", item)
@@ -175,7 +185,7 @@ def place_order():
         # run_query("SELECT menu_item.id, orders.id INTO order_menu_item FROM orders RIGHT JOIN menu_item ON menu_item.restaurant_id=orders.restaurant_id WHERE restaurant.id=?",restaurant_id)
         # Once the client is finished adding the items, the items are added (as a list)
         # to the orders table ("INSERT INTO ")
-    return jsonify("Item added to order"), 201
+    return jsonify("Order Created"), 201
     
 
     

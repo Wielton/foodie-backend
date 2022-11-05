@@ -65,7 +65,6 @@ def client_register():
     last_name = data.get('lastName')
     password_input = data.get('password')
     password = encrypt_password(password_input)
-    picture_url = data.get('pictureUrl')
     if not email:
         return jsonify("Email required"), 422
     if not username:
@@ -76,12 +75,15 @@ def client_register():
         return jsonify("Last name required"), 422
     if not password_input:
         return jsonify("Password required"), 422
-    run_query("INSERT INTO client (email, username, password, first_name, last_name, picture_url) VALUES (?,?,?,?,?,?)", [email, username, password, first_name, last_name, picture_url])
+    run_query("INSERT INTO client (email, username, password, first_name, last_name) VALUES (?,?,?,?,?)", [email, username, password, first_name, last_name])
     client_data = run_query("SELECT * FROM client WHERE username=?", [username])
     login_token = str(uuid.uuid4().hex)
     client_id = client_data[0][0]
+    client = {}
+    client['clientId'] = client_id
+    client['sessionToken'] = login_token
     run_query("INSERT INTO client_session (token,client_id) VALUES (?,?)", [login_token, client_id])
-    return jsonify('Client account created successfully.'),201  # Client redirected to logged-in restaurant list
+    return jsonify(client) # Client redirected to logged-in restaurant list
 
 
 @app.patch('/api/client')

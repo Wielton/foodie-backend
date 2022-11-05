@@ -25,7 +25,9 @@ def client_login():
     if not password_input:
         return jsonify("Password required"), 422
     client_info = run_query("SELECT * FROM client WHERE email=?", [email_input])
-    if client_info is not None:
+    if not client_info:
+        return jsonify("User not found"), 500
+    else:
         client_password = client_info[0][3]
         if not bcrypt.checkpw(password_input.encode(), client_password.encode()):
             return jsonify("Error, the password doesn't match"),401
@@ -41,8 +43,8 @@ def client_login():
         client = {}
         client['sessionToken'] = login_token
         return jsonify(client)
-    else:
-        return jsonify("User not found"), 500
+    
+        
 
 
 @app.delete('/api/client-login')

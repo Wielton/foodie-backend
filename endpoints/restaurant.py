@@ -55,12 +55,13 @@ def restaurant_register():
     address = data.get('address')
     if not address:
         return jsonify("Address required"), 422
-    phone_num = data.get('phoneNum')
-    if not phone_num:
-        return jsonify("Phone number required"), 422
+    
+    # if not phone_num:
+    #     return jsonify("Phone number required"), 422
     bio = data.get('bio')
     if not bio:
         return jsonify("Bio required"), 422
+    phone_num = data.get('phoneNum')
     profile_url = data.get('profileUrl')
     banner_url = data.get('bannerUrl')
     city_input = data.get('city')
@@ -77,12 +78,15 @@ def restaurant_register():
     restaurant_id = restaurant_data[0][0]
     login_token = str(uuid.uuid4().hex)
     run_query("INSERT INTO restaurant_session (token, restaurant_id) VALUES (?,?)", [login_token, restaurant_id])
-    return jsonify("Restaurant successfully created"), 201
+    restaurant_info = {}
+    restaurant_info['restaurantId'] = restaurant_id
+    restaurant_info['restaurantSessionToken'] = login_token
+    return jsonify(restaurant_info)
 
 @app.patch('/api/restaurant')
 def edit_restaurant_profile():
     params = request.args
-    session_token = params.get('token')
+    session_token = params.get('restaurantSessionToken')
     session = run_query("SELECT * FROM restaurant_session WHERE token=?",[session_token])
     if session is not None:
         restaurant_id = session[0][3]
